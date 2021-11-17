@@ -1,4 +1,4 @@
-const dt = 1/60;
+const dt = 1/20;
 
 class CharacterState {
     x = 0;
@@ -66,15 +66,15 @@ class CharacterState {
     }
 
     topTile() { return Math.floor(this.y)}
-    bottomTile(height) { return Math.floor(this.y + height)}
+    bottomTile(height) { return Math.ceil(this.y + height - 1)}
 
     leftTile() { return Math.floor(this.x)}
-    rightTile(width) { return Math.floor(this.x + width)}
+    rightTile(width) { return Math.ceil(this.x + width - 1)}
 }
 
 class CharacterController {
-    width = 1;
-    height = 1;
+    width = 0.99;
+    height = 0.99;
 
     gravity = 5;
     fallingGravityBoost = 1.7;
