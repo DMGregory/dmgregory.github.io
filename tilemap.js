@@ -11,8 +11,9 @@ const Tile = {
     WOOD_BOX: Symbol.for("woodBox"),
     PINK_SLIME: Symbol.for("pinkSlime"),
     START_SIGN: Symbol.for("startSign"),
-    GREEN_FLAG: Symbol.for("greenFlag"),
-    COIN: Symbol.for("coin")
+    GREEN_FLAG: Symbol.for("greenFlag"),    
+    COIN: Symbol.for("coin"),
+    PLAYER_STAND: Symbol.for("playerStand"),
 };
 Object.freeze(Tile);
 
@@ -195,17 +196,8 @@ class MapChunk {
         ctx.fillStyle = "#8CF";
 
         // Draw the path through the level, if provided by the generator.
-        if (this.path) {
-            ctx.strokeStyle = "white";
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            let point = this.path[0];
-            ctx.moveTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
-            for (let i = 1; i < this.path.length; i++) {
-                point = this.path[i];
-                ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
-            }
-            ctx.stroke();
+        if (this.preDraw) {
+            this.preDraw(ctx, tileSize);
         }
 
         // Iterate over our columns left to right.
@@ -324,5 +316,10 @@ class MapChunk {
 
         // "path" field is glued on by the Path-Based generator. Clear it too.
         this.path = undefined;
+    }
+
+    aspect() {
+        const { columns, rows } = this.getDimensions();
+        return rows/columns;
     }
 }
