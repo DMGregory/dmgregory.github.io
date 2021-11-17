@@ -38,7 +38,7 @@ class Demo {
   }
 
   repaint() {
-    this.context.fillStyle = "#E4F7FF";
+    this.context.fillStyle = "#DAEAFF";
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);    
 
     if (tiles.hasLoaded()) {
@@ -107,54 +107,91 @@ const demos = {};
 
   const standingJump = [];
   const runningJump = [];
+  const stallingJump = [];
   const reverseJump = [];
+
+  function simPath(path, state, input) {
+    path.length = 0;    
+    path.push([startX, startY]);
+    while (state.y <= startY) {
+      state = controller.step(state, input);
+      path.push([state.x,state.y]);
+    }  
+  }
 
   jumpArc.onRegenerate = function() {
     const start = new CharacterState(startX, startY);
     const input = {x: 1, jump: true};
 
-    standingJump.length = 0;
-    standingJump.push([startX, startY]);
-    let state = start;
-    while (state.y <= startY) {
-      state = controller.step(state, input);
-      standingJump.push([state.x,state.y]);
-    }
+    simPath(standingJump, start, input);
 
-    runningJump.length = 0;
-    runningJump.push([startX, startY]);
-    state = start;
-    state.velX = controller.runSpeed;    
-    while (state.y <= startY) {
-      state = controller.step(state, input);
-      runningJump.push([state.x,state.y]);
-    }    
+    start.velX = controller.runSpeed;    
+    simPath(runningJump, start, input);
 
-    reverseJump.length = 0;
-    reverseJump.push([startX, startY]);
-    state = start;
+    input.x = 0;
+    simPath(stallingJump, start, input); 
+
     input.x = -1;
-    while (state.y <= startY) {
-      state = controller.step(state, input);
-      reverseJump.push([state.x,state.y]);
-    }  
+    simPath(reverseJump, start, input);
   }
 
   jumpArc.map.preDraw = function(context, tileSize) {
-    drawPath(context, tileSize, runningJump, '#BEB');
-    drawPath(context, tileSize, standingJump, '#CCF');
-    drawPath(context, tileSize, reverseJump, '#FCC');
+    context.beginPath();
+    context.strokeStyle = 'white';
+    context.lineWidth = 2;
+    for (let y = 1; y < height; y++) {
+      context.moveTo(0, y * tileSize);
+      context.lineTo(width * tileSize, y * tileSize);
+    }
+    for (let x = 1; x < width; x++) {
+      context.moveTo(x * tileSize, 0);
+      context.lineTo(x* tileSize, height * tileSize);
+    }
+    context.stroke();
+    drawPath(context, tileSize, runningJump, 'green');
+    drawPath(context, tileSize, standingJump, 'blue');
+    
+    drawPath(context, tileSize, reverseJump, 'red');
+    drawPath(context, tileSize, stallingJump, 'orange');
   }
 
   demos.jumpArc = jumpArc;
 }
 
-makeParameter(controller, 'runSpeed', ['maxSpeed'], [demos.jumpArc]);
-makeParameter(controller, 'jumpHeight', ['jumpHeight'], [demos.jumpArc]);
-makeParameter(controller, 'fallingGravityBoost', ['fallingBoost'], [demos.jumpArc]);
-makeParameter(controller, 'maxAcceleration', ['acceleration'], [demos.jumpArc]);
-makeParameter(controller, 'maxDeceleration', ['deceleration'], [demos.jumpArc]);
-makeParameter(controller, 'airControl', ['airControl'], [demos.jumpArc]);
+{
+  const width = 50;
+  const height = 20;
+  const startX = 3;
+  const startY = height - 2;
+  const pathGen = new Demo('pathGen', 
+    new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
+  )
+  demos.pathGen = pathGen;
+}
+
+{
+  const width = 50;
+  const height = 20;
+  const startX = 3;
+  const startY = height - 2;
+  const ensemble = new Demo('ensemble', 
+    new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
+  )
+  demos.ensemble = ensemble;
+}
+
+{
+  const allDemos = [demos.jumpArc, demos.pathGen, demos.ensemble];
+  const pathDemos = [demos.pathGen, demos.ensemble]
+  const skinDemos = [demos.ensemble];
+  makeParameter(controller, 'runSpeed', ['maxSpeed', 'maxSpeed1'], allDemos);
+  makeParameter(controller, 'jumpHeight', ['jumpHeight', 'jumpHeight1'], allDemos);
+  makeParameter(controller, 'fallingGravityBoost', ['fallingBoost'], allDemos);
+  makeParameter(controller, 'maxAcceleration', ['acceleration'], allDemos);
+  makeParameter(controller, 'maxDeceleration', ['deceleration'], allDemos);
+  makeParameter(controller, 'airControl', ['airControl'], allDemos);
+}
+
 
 function animate() {
   for (const demo of Object.values(demos)) {

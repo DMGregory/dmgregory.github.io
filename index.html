@@ -3,18 +3,19 @@
 <script src="https://distill.pub/template.v1.js"></script>
 <script src="./tilemap.js"></script>
 <script src="./platformer.js"></script>
+<script src="./pather.js"></script>
 <style>
   svg { display: none; }
 
-  figure {background-color: #F0F0F0; }
+  /*figure {background-color: #F0F0F0;*/
 
-  figure > table {width:100%; border-bottom: 1px;}
+  figure > table {width:100%; border-bottom: 2px solid lightgrey;}
   label {  margin-left: 10px;}
 </style>
 
 <script type="text/front-matter">
   title: "Path-First Platformer Generation"
-  description: "Using simulated gameplay traces as the foundation for level generation."
+  description: "Using simulated gameplay traces as foundations for level generation."
   authors:
   - Douglas Gregory: https://twitter.com/D_M_Gregory
   affiliations:
@@ -23,7 +24,7 @@
 
 <dt-article>
   <h1>Path-First Platformer Generation</h1>
-  <h2>Using simulated gameplay traces as the foundation for level generation.</h2>
+  <h2>Using simulated gameplay traces as foundations for level generation.</h2>
 
   <figure class="l-screen">
     <img src="platformer-slideshow.gif" width="100%"/>
@@ -34,10 +35,16 @@
   
   <h3>Abstract</h3>  
 
-  <p>We present a path-first approach to level generation in the context of a 2D platformer game, 
-    and demonstrate that this generator is able to produce an excellent variety of levels with 
-    strong playability guarantees, while also affording avenues for designer control and 
-    co-creation with the algorithm.</p>
+  <p>Methods for procedural generation of game levels frequently suffer from complex configuration, 
+    often demanding technical expertise outside a typical game designer or level designer's skill set,
+    and the risk of generating non-playable output that must be filtered out or post-processed to correct it.
+
+    We present a "path-first" approach to level generation in the context of a 2D platformer game, designed
+    to address these issues. Configuring the generator is a matter of tuning a character controller, something
+    game designers already do. This controller is then used to generate simulated gameplay paths, which form the 
+    scaffold for the level to be built. Because the level is generated from a feasible path, it gives
+    strong guarantees of playability, and affords intuitive means for designer editing.
+  </p>
 
   <h4>Keywords</h4>
   <p>Procedural Content Generation, Platformer, Play Traces</p>
@@ -45,18 +52,74 @@
   <h3>1. Introduction</h3>
 
   <p>Procedural content generation for games (PCG) grapples with the challenge of producing artifacts 
-    that not only exhibit the visual or stylistic *form* of human-designed game content such as levels,
-    but also support the *function* of play, affording player action.</p>
+    that not only exhibit the visual or stylistic <em>form</em> of human-designed game content such as levels,
+    but also support the <em>function</em> of play, affording player action. For a side-scrolling platformer
+    game, this means it must be possible for a player to navigate their character from their spawn point in the level 
+    to the goal or exit, using only the moves permitted by the game's physics model (eg. running and jumping).</p>
+
+  <p>Models of possible player paths (or "play traces") representing such a journey through a level have 
+     long been applied to address this need. Most prominent is the use of A* search to evaluate the playability
+     of a game level, either...</p>      
+  <ul>
+    <li><strong>during generation</strong>, to accept or reject each new addition based on its playability or difficulty, 
+      as estimated by the window of feasible paths it affords,</li>
+      <li>or as a <strong>post-proces</strong>, to correct a completed level, 
+        adding potential paths where they are missing.</li>
+  </ul>      
+  <p>In these conventional uses, the level geometry is at least <em>tentatively</em> chosen first,
+    <em>then</em> a path is sought to solve it. This limits the ways that information or design direction
+    about play behaviour can influence the generation, requiring complex and often non-intuitive rules 
+    and heuristics be used for the initial selection.
+  </p>
+  <p>Procedural content generation via machine learning (PCGML) approaches attempt to reduce the
+    burden of authoring such rules by instead learning them from a corpus of human-made levels, but
+    are not without their own problems. As is common in machine learning, the model trained this way 
+    is generally a black box, offering no guarantees that it will produce playable or desirable output
+    in every scenario, and no clear route to controlling or modifying its behaviour other than
+    re-training it. Moreover, available corpora of game levels to use in training are usually small, 
+    limited to older games, and highly specific to the rules and play styles of those examples.
+    A game creator seeking to generate content for a new game with its own distinct style faces
+    the difficult prospect of finding ways to extend or blend existing corpora to fit, or else devoting
+    a large volume of labour to building their own original training corpus unique to their game.
+  </p>
+
+  <p>In this paper, we attempt to address these issues by <strong>putting the play path first</strong>.
+    Using the game's own physics model and character controller, which designers are already accustomed
+    to tuning, we are able to simulate possible trajectories that a player character can follow. Coupled
+    with intuitive parameters for the frequency of jumps, drops, and direction changes, we can generate
+    plausible play traces with a controllable style and rhythm. Simple book-keeping helps us avoid
+    creating contradictory and unplayable paths. With a path in hand, we can proceed to populate the level
+    with tiles that support that path &mdash; solid floor where the player needs to stand or walk, 
+    open air where they need to jump or fall &mdash; and embellish it with relevant details &mdash; 
+    like coins and power-ups where the player can reach them, or enemies where the player can fight them.
+  </p>
 
   <h3>2. Related Works</h3>
+
+  
+  <p>
+  Work in PCGML (Procedural Content Generation via Machine Learning) has identified that annotating a corpus of level data with synthetic player path information to generate level-and-path-hints as one combined artifact significantly improves a trained generator's success in producing playable and coherent levels (Summerville and Mateas 2016), and the feasibility of extracting human player paths from video to learn different play styles (Summerville et al. 2016). More recently, researchers have demonstrated the potential to generate human-like play paths as their own artifact, without initially committing to any level geometry at all, and following up by generating level content that supports that path (Sorochan et al. 2021), helping to create more coherent levels. These researchers speculate that this technique may also have the potential to support greater control over the generator output, but this remains an open research problem.
+  </p>
 
   <h3>3. Method</h3>
 
   <h4>3.1 Character Control Model</h4>
 
-  
+  <p>We begin with the physics model and character control logic of the target game. For a platformer,
+    this will typically include parameters relating to the gravity, the character's speed, their 
+    jump height, etc., which a game designer will tune in order to achieve their target game feel.
+  </p>
+  <p>Below, we present an interactive example of such a model. Play with the slidiers to see
+    how the settings change the shapes of the character's possible jump arcs, including...    
+  </p>
+  <ul>
+    <li><strong style="color: green;">running jump</strong>: jump while running right at max speed, holding right for the full duration.</li>
+    <li><strong style="color: orange;">stalling jump</strong>: jump while running right at max speed, then release the button to slow in mid air.</li>    
+    <li><strong style="color: red;">turnaround jump</strong>: jump while running right at max speed, then hold left to try to turn around in mid air.</li>
+    <li><strong style="color: blue;">standing jump</strong>: jump while stationary, then hold right to accelerate in mid air.</li>
+  </ul>
 
-  <figure>
+  <figure class="l-middle">
     <canvas id="jumpArc"></canvas>
 
     <table><tr>
@@ -76,36 +139,205 @@
         <label for="fallingBoost">Falling Boost</label>
         <input type="range" id="fallingBoost" min="0.5" max="8" step="any"/><br/>
       </td>      
-    </tr></table>    
+    </tr><tr>
+    <td colspan="2" style="text-align:center">
+      <em>You can examine the logic used for this character controller in <a href="./platformer.js">platformer.js</a>.</em>
+    </td>
+  </tr></table>    
   </figure>
+
+  <p>
+    The character control model takes in a source state <strong>S</strong> representing the character's
+    current position and momentum, and an input state <strong>I</strong> representing the controls currently
+    pressed by the player. It then produces a new state <strong>S'</strong> that is the resulting state of
+    the character after one game frame's worth of simulation.
+  </p>
+  <p>A strength of this approach is that the character controller is able to remain 
+    a black box to the generator routine. Changing the game's underlying physics
+    model or gameplay tuning will automatically adapt the generator's output to match, so
+    designers can tune the generator using the tuning process they already use for 
+    character physics.
+  </p>
+  <p>We augment the character state <strong>S</strong> with some counters tracking the number of frames
+    spent consecutively on the ground or in the air. This is already used in many games to
+    implement features like "coyote time" (a grace period where players may still jump even
+    if they've run off the edge of a platform), and gives us tools to control the rhythm
+    of the generated paths. We also add a "facing" property (again, used in games to select
+    an appropriate idle sprite when coming to a stop after moving left or right) which helps
+    the generated paths suggest an "intentional" flow, rather than excessive hesitation
+    and backtracking.
+  </p>
+
+  <h4>3.2 Generating Paths</h4>
+
+  <p>Paths are generated using a kind of Markov chain, where a given character state S is mapped
+    to a probability distribution of possible input states I that the simulated player 
+    could press next, according to designer-tunable parameters:
+  </p>
+  <ul>
+    <li><strong>Time between jumps / drops</strong>: 
+      a minimum and maximum bound on how long the player can stay on one platform, 
+      helping to control the typical lengths of platforms.</li>
+    <li><strong>Jump probability</strong>: 
+        how likely the simulated player will jump upon reaching the end of a platform,
+        rather than walking off the edge and dropping down to a lower level.</li>
+    <li><strong>Backtrack probability</strong>: 
+        how likely the simulated player will change direction and travel right-to-left.</li>
+    <li><strong>Height variance</strong>:
+        how far will a typical jump rise above or fall below its starting height.</li>
+  </ul>  
+  <p>Beginning with a starting character state <strong>S</strong> on the left side of the map (stationary, facing right, at a random elevation),
+    we select our next input state <strong>I</strong> using this probability distribution, and then run
+    these through the character controller model to produce our new state <strong>S'</strong>, and repeat.
+  </p>
+  <p>When the new state is falling (velocity points downward), our generator can additionally decide whether 
+    to intervene and transition back to a standing state, according to the timing and height variance parameters. 
+    If so, it modifies the output state to simulate collision with the ground, snapping it to the tile 
+    boundary above the hypothetical collided surface. It always does this if the player has fallen into the 
+    bottom row of the map, to ensure the generated path never goes out of bounds by falling into a pit. 
+    The top/left/right edges of the map are treated as solid obstacles, so that the character controller won't 
+    take the play path out of bounds in those directions.    
+  </p>
+  <p>To avoid contradictions that lead to unplayable paths, the generator does some book-keeping as it goes.
+    Any time a state requires that the player be on the ground, it marks the tile below them as "solid", to
+    ensure later parts of the path don't attempt to pass through this space. It also marks the set of tiles
+    that the player sprite occupies in any state along the way as "reserved". If a later step contemplates marking
+    one of these "reserved" tiles as "solid", it can recognize that this space is already claimed as empty traversable 
+    space, and allow the player to fall through it instead.
+  </p>
+  <p>This process is repeated until the path reaches all the way to the right side of the map.</p>
+  <p>On occasion, the Markov chain can get stuck in a situation where there is no allowed input state for
+    the current character state, or where it has meandered excessively without reaching the right side. 
+    In these cases, the path is simply aborted and re-tried from scratch. Experimentally, setting a max of
+    30 or so retries is sufficient to reach a successful path with high probability.
+  </p>
+  <p>Try playing with the parameters below, and observe how changing both the character control model 
+    and the path tuning parameters changes the personality of the resulting paths to the end. 
+    Click the map to re-generate with the same parameters.</p>
+
+    <figure class="l-middle">
+      <canvas id="pathGen"></canvas>
+  
+      <table><tr>        
+        <td width="50%">
+          <label for="minJumpTime">Min Time Between Jumps</label>
+          <input type="range" id="minJumpTime" min="0.5" max="8" step="any"/><br/> 
+          <label for="maxJumpTime">Max Time Between Jumps</label>
+          <input type="range" id="maxJumpTime" min="0.5" max="8" step="any"/><br/> 
+          <label for="jumpProbability">Jump Probability</label>
+          <input type="range" id="jumpProbability" min="0.01" max="1" step="any"/><br/> 
+        </td>
+        <td width="50%">
+          <label for="backtrackProbability">Backtrack Probability</label>
+          <input type="range" id="backtrackProbability" min="0" max="0.5" step="any"/><br/>
+          <label for="heightVariance">Height Variance</label>
+          <input type="range" id="heightVariance" min="0" max="1" step="any"/><br/>
+        </td>      
+      </tr><tr>
+        <td width="50%">
+          <label for="maxSpeed1">Max Speed</label>
+          <input type="range" id="maxSpeed1" min="0.5" max="8" step="any"/><br/> 
+        </td>
+        <td width="50%">
+          <label for="jumpHeight1">Jump Height</label>
+          <input type="range" id="jumpHeight1" min="0.5" max="8" step="any"/><br/>
+        </td>      
+      </tr><tr>
+        <td colspan="2" style="text-align:center">
+          <em>You can examine the logic used for the path generation in <a href="./pather.js">pather.js</a>.</em>
+        </td>
+      </tr></table>    
+    </figure>
+
+    <p>At present, these path parameters are applied globally. But one could also vary these parameters
+      over the course of a level, either following designer-painted "gameplay style regions", or direction 
+      from a higher-level generator in the pipeline.
+    </p>
+
+  <h4>3.3 Skinning Paths</h4>
+
+  <p>The final step is to turn these path annotations into fully-realized map tiles. 
+    In the current model, we do this by iterating over the tiles of the book-keeping map laid 
+    down by the preceding pass, and applying simple heuristics:
+  </p>
+  <ul>
+    <li>A tile that was marked as solid is filled in with a "dirt" tile.</li>
+    <li>If this solid tile has no book-keeping annotations below it, we fill the entire column downward from that tile.</li>
+    <li>If there's room to extend this platform one tile further to the left or right without interfering with any book-keeping notes,
+      we do so with a designer-controllable probability. This helps reduce single-tile platforms and overly exacting jumps.</li>
+    <li>If there's a sufficient gap of empty space above a solid tile, we can choose to place a power-up box in that position,
+      again with a designer-controlled probability.
+      (This can fill in for a dirt tile we would have otherwise placed to fill a solid reservation)</li>
+    <li>Reservations near the peaks of jumps can be filled in with coins, with designer-controlled probability.</li>
+    <li>Solid tiles away from the starting location, with enough free space above to stomp on them, can be places
+      to station an enemy, with designer-controlled probability.</li>
+  </ul>
+
+  <p>These heuristics are crude, but sufficient to demonstrate visually-plausible levels that maintain the 
+    generated paths' playability guarantees. In future, we would like to investigate using a 2-dimensional Markov 
+    chain as in [CITATION], or a Wave Function Collapse-based generator to allow more nuanced and stylistic translation
+    of the path annotations into level geometry, and to afford data-driven definitions of different platform styles
+    to mix and match in a level.
+  </p>
 
   <h3>4. Results</h3>
 
-  <h3>5. Limitations</h3>
+  <p>Below, you can play with a generator that includes the full end-to-end process.</p>
 
-  <h3>5. Future Work</h3>
+  <figure class="l-middle">
+    <canvas id="ensemble"></canvas>
 
+    <table><tr>
+      <td colspan="2" style="text-align:center">
+        <em>You can examine the logic used for the skinning in <a href="./pather.js">pather.js</a>.</em>
+      </td>
+    </tr></table>    
+  </figure>
+
+  <p>For a future version of this paper, we would like to include a playable demo, so that
+    a reader will be able to evaluate the feeling of playing these generated levels for themselves.
+  </p>
+
+  <h3>5. Limitations and Future Work</h3>
+
+  <p>While Markov chain path generation gives an interesting variety to the levels, it can be hit and miss, 
+    requiring lots of aimless repetition before reaching a success, and producing some very plain or very strange levels.
+    In future, we would like to investigate using a more directed path search, possibly using a model trained
+    on human input as in [CITATION], or a variant on A* for goal-seeking paths.
+  </p>
+
+  <p>The ability to generate a path toward a specific destination offers some exciting possibilities.
+    In a mixed initiative context like the Tanagra level editor [CITATION], a level designer could sketch
+    a rough gesture for how the player should move through the space, and the generator could respond by
+    offering viable gameplay paths (and supporting geometry) that deliver on this direction. The designer could
+    then erase some parts of the level and ask the algorithm to re-connect the separated parts, or create an
+    alternate path between two already connected parts. A level designer may even be able to select and move 
+    parts of the path level geometry, with the algorithm able to infer how the pathing and supporting geometry
+    will need to change as a result. In this way, the path-first model could facilitate
+    a very high-level and intuitive form of collaboration with the machine to speed creation.
+  </p>
+
+  <span>TODO: Illustrate example</span>
+
+  <p>These same concepts could also be used by a higher-level generator, laying down broad schemes for
+    how the level should flow according to a design pattern repertoire as in [CITATION], then delegating to
+    the path generator to realize this graph in actual gameplay.
+  </p>
   
+  <span>TODO: Illustrate example</span>
 
+  <p>There is also a great deal of room to explore ways of varying the style of the level generated,
+    such as by moving between different "registers" of path parameters and skinning palettes, as suggested by
+    Dormans [CITATION]. Replacing the hard-coded heuristics of the current level skinning tool with a
+    data-driven generator such as Wave Function Collapse could allow level designers to art direct levels or
+    parts of levels just by providing a small example of the styles they want to use.
+  </p>
 
-  <p>This is the first paragraph of the article.</p>
-  <dt-code block language="javascript">
-    var x = 25;
-    function(x){
-      return x * x;
-    }
-  </dt-code>
-  <p>We can also cite <dt-cite key="gregor2015draw"></dt-cite> external publications.</p>
-
-  
-
-  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque ut ultricies tortor. Quisque et mi in dui hendrerit volutpat et sit amet lorem. Nullam tempus, diam ut blandit eleifend, diam quam ultrices leo, sed sollicitudin sem augue at urna. Vivamus quis auctor lorem. Etiam elementum ante neque, nec volutpat tortor convallis eu. Maecenas vel ipsum quis tortor volutpat rutrum. Donec nibh nunc, luctus eget eros quis, euismod pulvinar massa.</p>
-
-  <p>Nulla facilisi. Morbi consequat mauris in est luctus, sit amet consectetur tellus aliquet. Proin eget magna facilisis, porttitor nunc quis, aliquet tellus. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Cras vulputate, nisi a posuere viverra, justo nisl iaculis magna, at porttitor purus ex ac dui. Sed auctor mattis vestibulum. Sed at venenatis eros, et sollicitudin felis. Morbi pharetra leo sed diam fringilla, vitae bibendum ligula lobortis. Praesent mattis vulputate ligula. Curabitur fermentum fringilla eros, ac vestibulum elit interdum non. Cras eget lorem facilisis, fermentum dolor at, egestas ex.</p>
-
-  <p>Morbi semper molestie feugiat. Nullam eros nisl, pharetra tincidunt auctor id, venenatis quis velit. Duis ac tristique quam. Phasellus ullamcorper est eget sem posuere, vitae semper urna sagittis. Nunc ac felis non lacus facilisis vestibulum. Pellentesque porttitor magna magna. Phasellus a lacus elementum, dapibus tellus sed, dictum ipsum. Fusce sed nisl at lectus aliquam tempor. Nulla facilisi. Curabitur a dolor eros. Nam aliquam enim eget tortor luctus, et porta ligula iaculis. In euismod nec velit non tristique. Suspendisse sapien turpis, convallis placerat bibendum non, consequat in lacus. Vestibulum commodo at massa sed vehicula.</p>
-
-  <p>Mulla nulla ipsum, congue sed ex eget, pellentesque finibus erat. In eleifend dapibus suscipit. Vivamus tincidunt sit amet elit id faucibus. Vivamus porta, lacus et cursus pharetra, orci tellus rhoncus nisi, sed laoreet nisl tellus et quam. Sed gravida aliquet justo, ac elementum felis dignissim vel. Etiam sed pulvinar tellus. Donec ipsum sem, maximus id nisi mollis, dapibus vehicula erat. Vivamus ultricies consequat ex sed blandit. Donec venenatis sapien condimentum, convallis leo a, malesuada nunc. Sed elementum risus id pulvinar condimentum. Ut ornare magna quis ultricies consequat. Maecenas non scelerisque purus. Quisque eu sem felis. Duis at aliquam neque, eget sagittis ligula. Aenean massa ligula, commodo eget auctor ac, pharetra nec sapien.</p>
+  <p>Lastly, we believe this approach to generation can have applications outside the context of 2D 
+    side-scrolling platformer games. There's no reason that the character control model needs to be limited to
+    running and jumping, and so games with more diverse palettes of actions could also find use for this 
+    approach to procedural generation.
+  </p>
 </dt-article>
 
 <dt-appendix>
