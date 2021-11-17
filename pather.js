@@ -6,13 +6,32 @@ class Pather {
     fallLimit;
     jumpLimit;
 
+    minTicksOnPlatform = 1/dt;
+    maxTicksOnPlatform = 3/dt;
+
+    jumpProbablity = 0.5;
+
+    backtrackProbability = 0.5;
+
+    heightVariance = 1.0;
+
     constructor(controller) {
         this.controller = controller;
     }
 
     selectInputForState(state) {
         const input = {x:0, jump:false};
-        
+
+        if (Math.random() < 0.8) {            
+            if (state.facing == 0) {
+                input.x = (Math.random() < this.backtrackProbability) ? -1 : 1;
+            }
+        }
+
+        if (state.isOnGround(controller.coyoteFrames)) {
+            
+        }
+
         return input;
     }
 

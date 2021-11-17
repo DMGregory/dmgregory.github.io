@@ -57,12 +57,14 @@ class CharacterState {
         this.velY = jumpVelocity;
         this.framesOnGround = 0;
         this.framesInAir = Math.max(this.framesInAir, 1);
+        this.facing = 0;
     }
 
     land() {
         this.framesInAir = 0;
         this.framesOnGround = 1;
         this.velY = 0;
+        this.facing = 0;
     }
 
     topTile() { return Math.floor(this.y)}
@@ -140,7 +142,7 @@ class CharacterController {
         if (newState.velY > 0) {
             // Falling down - land if we touch a solid tile below.
             for (let x = left; x <= right; x++) {
-                if(map.isSolid(x, bottom)) {
+                if(map.isSolid(x, bottom) && !map.isSolid(x, bottom - 1)) {
                     newState.y = bottom - this.height;
                     newState.land();
 
@@ -154,7 +156,7 @@ class CharacterController {
         } else if (newState.velY < 0) {
             // Rising up - kill our vertical velocity if we hit our head.
             for (let x = left; x <= right; x++) {
-                if(map.isSolid(x, top)) {
+                if(map.isSolid(x, top) && !map.isSolid(x, top + 1)) {
                     newState.y = top+1;
                     newState.velY = 0;
 
