@@ -20,8 +20,8 @@ class CharacterState {
     }
 
     clone() {
-        const copy = new CharacterState(this.x, this.y);
-        Object.assign(copy, this);
+        let copy = new CharacterState(this.x, this.y);
+        copy = Object.assign(copy, this);        
         return copy;
     }
 
@@ -36,6 +36,8 @@ class CharacterState {
         const limit = (stopping ? maxDeceleration : maxAcceleration) * dt;
         
         const clamped = Math.min(Math.max(deltaV, -limit), limit);
+
+        const pre = this.velX;        
 
         this.velX += clamped;
     }
@@ -84,10 +86,10 @@ class CharacterController {
 
     runSpeed = 5;
 
-    maxAcceleration = 10;
-    maxDeceleration = 100;
+    maxAcceleration = 20;
+    maxDeceleration = 150;
 
-    airControl = 0.05;    
+    airControl = 0.03;    
 
     coyoteFrames = 2;
 
@@ -106,6 +108,9 @@ class CharacterController {
         
         
         const newState = oldState.clone();
+
+        if (typeof(newState.velX) !== 'number')
+            console.log('mismatch: ', newState, oldState);
 
         if (input.x != 0) {
             newState.facing = Math.sign(input.x);

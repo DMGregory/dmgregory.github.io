@@ -54,7 +54,7 @@ function makeParameter(objectToModify, parameterName, documentIds, affectedDemos
 
   function reaction(event) {
     const value = event.target.value;
-    objectToModify[parameterName] = value;    
+    objectToModify[parameterName] = parseFloat(value);    
     if (objectToModify.update) objectToModify.update();
 
     for (const input of inputs) {
@@ -114,24 +114,29 @@ const demos = {};
     path.length = 0;    
     path.push([startX, startY]);
     while (state.y <= startY) {
-      state = controller.step(state, input);
+      state = controller.step(state, input);      
       path.push([state.x,state.y]);
     }  
   }
 
   jumpArc.onRegenerate = function() {
     const start = new CharacterState(startX, startY);
+    start.velY = controller.jumpVelocity;
     const input = {x: 1, jump: true};
 
+    //console.log('standing', start, standingJump);
     simPath(standingJump, start, input);
 
     start.velX = controller.runSpeed;    
+    //console.log('running', start, runningJump);
     simPath(runningJump, start, input);
 
     input.x = 0;
+    //console.log('stalling', start, stallingJump);
     simPath(stallingJump, start, input); 
 
     input.x = -1;
+    //console.log('reverse', start, reverseJump);
     simPath(reverseJump, start, input);
   }
 
