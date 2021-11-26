@@ -7,16 +7,14 @@ class CharacterState {
     velX = 0;
     velY = 0;
 
-    framesOnGround = 0;
-    framesInAir = 0;    
+    framesSinceGround = 1;
+    framesOnGround = 0; 
 
-    facing = 0;
+    facing = 1;
 
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.facing = 1;
-        this.framesOnGround = 1;        
     }
 
     clone() {
@@ -26,7 +24,7 @@ class CharacterState {
     }
 
     isOnGround(coyoteFrames = 0) {
-        return this.velY >= 0 && this.framesInAir < coyoteFrames;
+        return (this.velY >= 0) && (this.framesSinceGround <= coyoteFrames);
     }
 
     accelerateToward(targetVelocity, maxAcceleration, maxDeceleration) {
@@ -48,23 +46,22 @@ class CharacterState {
         this.x += this.velX * dt;
         this.y += this.velY * dt;
 
-        if (this.isOnGround()) {
-            this.framesOnGround++;
-        } else {
-            this.framesInAir++;
+        if (this.framesSinceGround > 0) {
+            this.framesOnGround = 0;
         }
+
+        this.framesSinceGround++;
     }
 
     jump(jumpVelocity) {
-        this.velY = jumpVelocity;
-        this.framesOnGround = 0;
-        this.framesInAir = Math.max(this.framesInAir, 1);
+        this.velY = jumpVelocity;        
         this.facing = 0;
+        this.framesOnGround = 0;
     }
 
-    land() {
-        this.framesInAir = 0;
-        this.framesOnGround = 1;
+    land() {        
+        this.framesSinceGround = 0;
+        this.framesOnGround++;
         this.velY = 0;
         this.facing = 0;
     }
@@ -95,13 +92,21 @@ class CharacterController {
 
     jumpHeight = 4;
 
+    timeToPeak;
+    timeToFall;
+
+    postUpdate;
+
     constructor() {
-        this.update();
     }
 
     update() {
         this.jumpVelocity = -Math.sqrt(2 * this.jumpHeight * this.gravity);        
-        //const timeToPeak = -this.jumpVelocity/this.gravity;        
+        this.timeToPeak = -this.jumpVelocity/this.gravity;        
+        this.timeToFall = Math.sqrt(2 * this.jumpHeight / (this.gravity * this.fallingGravityBoost));
+
+        if (this.postUpdate)
+            this.postUpdate();
     }
 
     step(oldState, input) {        
@@ -196,7 +201,7 @@ class CharacterController {
                     newState.facing *= -1;
 
                     left++;
-                    right = newState.rightTile(width);
+                    right = newState.rightTile(this.width);
 
                     collided = true;
                     break;

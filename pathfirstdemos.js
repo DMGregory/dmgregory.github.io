@@ -81,16 +81,23 @@ function drawPath(ctx, tileSize, path, colour) {
   ctx.lineWidth = 5;
   ctx.beginPath();
   let point = path[0];
-  ctx.moveTo((point[0] + 0.5) * tileSize, (point[1] + 0.5) * tileSize);
+  ctx.moveTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
   for (let i = 1; i < path.length; i++) {
       point = path[i];
-      ctx.lineTo((point[0] + 0.5) * tileSize, (point[1] + 0.5) * tileSize);
+      ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
+      ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.7) * tileSize);
+      ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
   }
   ctx.stroke();
 }
 
 const controller = new CharacterController();
 
+const pather = new Pather(controller);
+
+controller.postUpdate = pather.update.bind(pather);
+
+controller.update();
 
 
 
@@ -115,7 +122,7 @@ const demos = {};
     path.push([startX, startY]);
     while (state.y <= startY) {
       state = controller.step(state, input);      
-      path.push([state.x,state.y]);
+      path.push({x:state.x, y:state.y});
     }  
   }
 
@@ -171,6 +178,19 @@ const demos = {};
   const pathGen = new Demo('pathGen', 
     new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
   )
+
+  pathGen.onRegenerate = function() {
+    pather.planPath(pathGen.map);
+  }
+
+  pathGen.map.preDraw = function(context, tileSize) {
+
+    if (pather.successfulPath)
+      drawPath(context, tileSize, pather.successfulPath, 'white');
+  }
+
+  pathGen.canvas.addEventListener('onclick', () => { console.log('clicked'); pathGen.needsUpdate = true; });
+
   demos.pathGen = pathGen;
 }
 
