@@ -259,22 +259,24 @@
     and the path tuning parameters changes the personality of the resulting paths to the end. 
     Click the map to re-generate with the same parameters.</p>
 
-    <figure class="l-middle">
-      <strong>Interactive temporarily out of service. <a href="https://codepen.io/DMGregory/pen/dyzNBeo">Please check out an earlier working version here</a> (white lines are paths)</strong>
+    <figure class="l-middle">     
       <canvas id="pathGen"></canvas>
   
+      <p><span style="color: #8CF; font-weight: bold;">=</span> book-keeping reservation for a "solid" tile &nbsp; &nbsp;  &nbsp; &nbsp;
+        <span style="color: #8CF; font-weight: bold;">.</span> tile reserved for player path</p>
+
       <table><tr>        
         <td width="50%">
           <label for="minJumpTime">Min Time Between Jumps</label>
-          <input type="range" id="minJumpTime" min="0.5" max="8" step="any"/><br/> 
+          <input type="range" id="minJumpTime" min="0.5" max="4" step="any"/><br/> 
           <label for="maxJumpTime">Max Time Between Jumps</label>
-          <input type="range" id="maxJumpTime" min="0.5" max="8" step="any"/><br/> 
+          <input type="range" id="maxJumpTime" min="0.5" max="4" step="any"/><br/> 
           <label for="jumpProbability">Jump Probability</label>
           <input type="range" id="jumpProbability" min="0.01" max="1" step="any"/><br/> 
         </td>
         <td width="50%">
           <label for="backtrackProbability">Backtrack Probability</label>
-          <input type="range" id="backtrackProbability" min="0" max="0.5" step="any"/><br/>
+          <input type="range" id="backtrackProbability" min="0" max="0.4" step="any"/><br/>
           <label for="heightVariance">Height Variance</label>
           <input type="range" id="heightVariance" min="0" max="1" step="any"/><br/>
         </td>      
@@ -292,7 +294,7 @@
           <em>You can examine the logic used for the path generation in <a href="./pather.js">pather.js</a>.</em>
         </td>
       </tr></table>    
-    </figure>
+    </figure>    
 
     <p>At present, these path parameters are applied globally. But one could also vary these parameters
       over the course of a level, either following designer-painted "gameplay style regions", or direction 

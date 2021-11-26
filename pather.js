@@ -1,4 +1,4 @@
-const SOLID_RESERVATION = 'X';
+const SOLID_RESERVATION = '#';
 const PLAYER_RESERVATION = '.';
 
 function discreteTriangleDistribution(min, max) {
@@ -50,15 +50,15 @@ class Pather {
     fallLimit;
     jumpLimit;
 
-    minSecondsOnPlatform= 1;
-    maxSecondsOnPlatform = 3;
+    minSecondsOnPlatform= .5;
+    maxSecondsOnPlatform = 2;
 
     jumpDistribution;
     landDistribution;
 
     jumpProbablity = 0.5;
 
-    backtrackProbability = 0.1;
+    backtrackProbability = 0.4;
 
     heightVariance = 1.0;
 
@@ -77,8 +77,8 @@ class Pather {
         this.jumpDistribution = discreteTriangleDistribution(min, max);
 
 
-        min = Math.round((this.controller.timeToPeak)/dt);
-        max = Math.round((this.controller.timeToPeak + 2 * this.controller.timeToFall)/dt);
+        min = Math.round((this.controller.timeToPeak + (1.0 - this.heightVariance) * this.controller.timeToFall)/dt);
+        max = Math.round((this.controller.timeToPeak + (1.0 + 0.25 * this.heightVariance) * this.controller.timeToFall)/dt);
 
         if (max < min) {max = min}
         this.landDistribution = discreteTriangleDistribution(min, max);
@@ -87,18 +87,15 @@ class Pather {
     selectInputForState(state, jumpLimit) {
         const input = {x:0, jump:false};
 
-        if (Math.random() < 10.8) {            
+        if (Math.random() < 0.8) {            
             if (state.facing == 0) {
-                input.x = (Math.random() < this.backtrackProbability) ? -1 : 1;
+                state.facing = (Math.random() < this.backtrackProbability) ? -1 : 1;
             }
+            input.x = state.facing;
         }
 
-        if (state.y >= jumpLimit) {
-        
-            if (controller.coyoteFrames > 0 && state.framesSinceGround == 1 && state.velY > 0) {
-                // If I've walked off a ledge, jump with some probability.
-                input.jump = Math.random() < this.jumpProbablity;
-            } else if (state.isOnGround(controller.coyoteFrames)) {
+        if (state.y >= jumpLimit) {        
+            if (state.isOnGround(controller.coyoteFrames)) {
                 // Otherwise, if I'm still mid-platform, check if it's time to jump.
                 const pJump = this.jumpDistribution(state.framesOnGround);            
                 input.jump = Math.random() < pJump;
@@ -110,23 +107,23 @@ class Pather {
 
     planPath(map) {
         let path;
-        for (let attempts = 0; (!path) && (attempts < 30); attempts++) {
+        for (let attempts = 0; (!path) && (attempts < 50); attempts++) {
             map.clear();
             path = this.attemptPath(map);
-            if (path) break;
+            if (path) { 
+                console.log(`found successful path in ${attempts+1} attempt${attempts > 0 ? 's' : ''}.`);
+                this.successfulPath = path;
+                break;
+            }
         }
 
-        if (path) {
-            this.successfulPath = path;
-            console.log("found successful path!");
-        } else {
+        if (!path) {
             this.successfulPath = this.lastAttempt;
             console.log("failed to find path. ", this.lastAttempt);
         }
     }
 
     attemptPath(map) {
-
         const { columns, rows } = map.getDimensions();
 
         const fallLimit = rows - 2;
@@ -145,15 +142,21 @@ class Pather {
         const path = [state];
 
         const mapShim = {
-            isSolid(x, y) {
+            isSolid: function(x, y) {
                 if (x < 0 || x >= columns) return true;
                 if (y < 0) return true;
                 const tile = map.getTileAt(x, y);
                 return tile === SOLID_RESERVATION;
-            }
+            },
+            getTileAt: map.getTileAt.bind(map)
         }
 
-        map.place(SOLID_RESERVATION, 0, state.bottomTile + 1);
+        {
+            const bottom = state.bottomTile(this.controller.height);
+            map.place(SOLID_RESERVATION, 0, bottom + 1);
+        }        
+        
+
         let wasOnGround = true;
 
         for (let i = 0; i < ticksBudget; i++) {
@@ -166,12 +169,12 @@ class Pather {
 
 
             let needsFloor = false;
-            if (!newState.isOnGround() && newState.velY > 0) {
+            if (newState.velY > 0) {
                 if (wasOnGround) {
                     let endPlatform = this.jumpDistribution(state.framesOnGround);
                     needsFloor = Math.random() >= endPlatform;
                 } else {
-                    needsFloor = bottom > this.fallLimit
+                    needsFloor = bottom > fallLimit
                               || Math.random() < this.landDistribution(newState.framesSinceGround);
                 }         
 
@@ -185,21 +188,24 @@ class Pather {
                     }
 
                     if (floorPlaced) {
+                        //floorsBuilt++;
                         // Re-run our collision check to snap the player above the newly placed floor.
                         ({collided, left, right, top, bottom} = this.controller.handleCollision(newState, mapShim));                            
                     }
                     wasOnGround = floorPlaced;
+                } else {
+                    wasOnGround = false;
                 }
             } else {
-                wasOnGround = true;
+                wasOnGround = newState.isOnGround();
             }
 
-            map.fill(PLAYER_RESERVATION, left, top, right, bottom);
+            map.fill(PLAYER_RESERVATION, left, top, right, newState.velY > 0 ? top : bottom);
             
             state = newState;
             path.push(state);
 
-            if (state.x >= columns - 1  && state.isOnGround()) {
+            if (state.x >= columns - 1  && state.isOnGround()) {                
                 return path;
             }
         }

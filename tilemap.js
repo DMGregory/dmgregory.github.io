@@ -211,7 +211,7 @@ class MapChunk {
 
                 // Used for debugging path generation. Displays path symbols instead of tiles.
                 if (typeof tile === "string") {
-                    //tx.fillText(tile, (x+0.25) * tileSize, (y+0.8) * tileSize);
+                    ctx.fillText(tile, (x+0.25) * tileSize, (y+0.8) * tileSize);
                     tile = Tile.NONE;
                 }
 

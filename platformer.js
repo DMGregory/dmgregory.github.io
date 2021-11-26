@@ -19,7 +19,8 @@ class CharacterState {
 
     clone() {
         let copy = new CharacterState(this.x, this.y);
-        copy = Object.assign(copy, this);        
+        copy = Object.assign(copy, this); 
+        copy.collision = undefined;       
         return copy;
     }
 
@@ -153,6 +154,7 @@ class CharacterController {
             // Falling down - land if we touch a solid tile below.
             for (let x = left; x <= right; x++) {
                 if(map.isSolid(x, bottom) && !map.isSolid(x, bottom - 1)) {
+                    //console.log(x, bottom, map.getTileAt(x, bottom).toString());
                     newState.y = bottom - this.height;
                     newState.land();
 
@@ -160,6 +162,7 @@ class CharacterController {
                     bottom--;
 
                     collided = true;
+                    newState.collision = {x:0, y:1};
                     break;
                 }
             }
@@ -174,6 +177,7 @@ class CharacterController {
                     bottom = newState.bottomTile(this.height);
 
                     collided = true;
+                    newState.collision = {x:0, y:-1};
                     break;
                 }
             }
@@ -190,6 +194,7 @@ class CharacterController {
                     right--;
 
                     collided = true;
+                    newState.collision = {x:1, y:0};
                     break;
                 }
             }
@@ -204,10 +209,12 @@ class CharacterController {
                     right = newState.rightTile(this.width);
 
                     collided = true;
+                    newState.collision = {x:-1, y:0};
                     break;
                 }
             }
         }
+
 
         return {collided, left, right, top, bottom}
     }

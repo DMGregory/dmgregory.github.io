@@ -38,7 +38,7 @@ class Demo {
   }
 
   repaint() {
-    this.context.fillStyle = "#DAEAFF";
+    this.context.fillStyle = "#D0E0FF";
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);    
 
     if (tiles.hasLoaded()) {
@@ -85,8 +85,10 @@ function drawPath(ctx, tileSize, path, colour) {
   for (let i = 1; i < path.length; i++) {
       point = path[i];
       ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
-      ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.7) * tileSize);
-      ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
+      if (false && point.velX) {
+        ctx.lineTo((point.x + 0.5 + point.velX * 0.7) * tileSize, (point.y + 0.5 + point.velY * 0.7) * tileSize);
+        ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
+      }
   }
   ctx.stroke();
 }
@@ -119,7 +121,7 @@ const demos = {};
 
   function simPath(path, state, input) {
     path.length = 0;    
-    path.push([startX, startY]);
+    path.push({x:startX, y:startY});
     while (state.y <= startY) {
       state = controller.step(state, input);      
       path.push({x:state.x, y:state.y});
@@ -176,7 +178,7 @@ const demos = {};
   const startX = 3;
   const startY = height - 2;
   const pathGen = new Demo('pathGen', 
-    new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
+    new MapChunk(width, height)
   )
 
   pathGen.onRegenerate = function() {
@@ -189,7 +191,7 @@ const demos = {};
       drawPath(context, tileSize, pather.successfulPath, 'white');
   }
 
-  pathGen.canvas.addEventListener('onclick', () => { console.log('clicked'); pathGen.needsUpdate = true; });
+  pathGen.canvas.addEventListener('click', () => { pathGen.needsUpdate = true; });
 
   demos.pathGen = pathGen;
 }
@@ -215,6 +217,10 @@ const demos = {};
   makeParameter(controller, 'maxAcceleration', ['acceleration'], allDemos);
   makeParameter(controller, 'maxDeceleration', ['deceleration'], allDemos);
   makeParameter(controller, 'airControl', ['airControl'], allDemos);
+  makeParameter(pather, 'minSecondsOnPlatform', ['minJumpTime'], pathDemos);
+  makeParameter(pather, 'maxSecondsOnPlatform', ['maxJumpTime'], pathDemos);
+  makeParameter(pather, 'backtrackProbability', ['backtrackProbability'], pathDemos);
+  makeParameter(pather, 'heightVariance', ['heightVariance'], pathDemos);
 }
 
 
