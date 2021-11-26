@@ -4,6 +4,7 @@
 <script src="./tilemap.js"></script>
 <script src="./platformer.js"></script>
 <script src="./pather.js"></script>
+<script src="./skinner.js"></script>
 <style>
   svg { display: none; }
 
@@ -169,7 +170,7 @@
     <table><tr>
       <td width="50%">
         <label for="maxSpeed">Max Speed</label>
-        <input type="range" id="maxSpeed" min="0.5" max="8" step="any"/><br/>
+        <input type="range" id="maxSpeed" min="3" max="8" step="any"/><br/>
         <label for="acceleration">Acceleration</label>
         <input type="range" id="acceleration" min="1" max="50" step="any"/><br/>   
         <label for="deceleration">Deceleration</label>
@@ -222,13 +223,10 @@
     <li><strong>Time between jumps / drops</strong>: 
       a minimum and maximum bound on how long the player can stay on one platform, 
       helping to control the typical lengths of platforms.</li>
-    <li><strong>Jump probability</strong>: 
-        how likely the simulated player will jump upon reaching the end of a platform,
-        rather than walking off the edge and dropping down to a lower level.</li>
     <li><strong>Backtrack probability</strong>: 
         how likely the simulated player will change direction and travel right-to-left.</li>
     <li><strong>Height variance</strong>:
-        how far will a typical jump rise above or fall below its starting height.</li>
+       looking at a typical jump's eventual landing point, how far it will climb above or fall below its starting height.</li>
   </ul>  
   <p>Beginning with a starting character state <strong>S</strong> on the left side of the map (stationary, facing right, at a random elevation),
     we select our next input state <strong>I</strong> using this probability distribution, and then run
@@ -262,8 +260,9 @@
     <figure class="l-middle">     
       <canvas id="pathGen"></canvas>
   
-      <p><span style="color: #8CF; font-weight: bold;">=</span> book-keeping reservation for a "solid" tile &nbsp; &nbsp;  &nbsp; &nbsp;
-        <span style="color: #8CF; font-weight: bold;">.</span> tile reserved for player path</p>
+      <p><span style="color: #8CF; font-weight: bold;">=</span> "solid" tile reservation &nbsp; &nbsp;  &nbsp; &nbsp;
+        <span style="color: #8CF; font-weight: bold;">.</span> tile reserved for player path &nbsp; &nbsp;  &nbsp; &nbsp;
+        <span style="color: red; font-weight: bold;">&mdash;</span> path attempt failed</p>
 
       <table><tr>        
         <td width="50%">
@@ -271,8 +270,6 @@
           <input type="range" id="minJumpTime" min="0.5" max="4" step="any"/><br/> 
           <label for="maxJumpTime">Max Time Between Jumps</label>
           <input type="range" id="maxJumpTime" min="0.5" max="4" step="any"/><br/> 
-          <label for="jumpProbability">Jump Probability</label>
-          <input type="range" id="jumpProbability" min="0.01" max="1" step="any"/><br/> 
         </td>
         <td width="50%">
           <label for="backtrackProbability">Backtrack Probability</label>
@@ -283,7 +280,7 @@
       </tr><tr>
         <td width="50%">
           <label for="maxSpeed1">Max Speed</label>
-          <input type="range" id="maxSpeed1" min="0.5" max="8" step="any"/><br/> 
+          <input type="range" id="maxSpeed1" min="3" max="8" step="any"/><br/> 
         </td>
         <td width="50%">
           <label for="jumpHeight1">Jump Height</label>
@@ -332,12 +329,12 @@
   <p>Below, you can play with a generator that includes the full end-to-end process.</p>
 
   <figure class="l-middle">
-    <strong>Interactive temporarily out of service. <a href="https://codepen.io/DMGregory/pen/dyzNBeo">Please check out an earlier working version here</a> (white lines are paths)</strong>
+    
     <canvas id="ensemble"></canvas>
 
     <table><tr>
       <td colspan="2" style="text-align:center">
-        <em>You can examine the logic used for the skinning in <a href="./pather.js">pather.js</a>.</em>
+        <em>You can examine the logic used for the skinning in <a href="./skinner.js">skinner.js</a>.</em>
       </td>
     </tr></table>    
   </figure>

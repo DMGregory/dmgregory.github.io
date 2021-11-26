@@ -1,4 +1,4 @@
-const dt = 1/20;
+const dt = 1/30;
 
 class CharacterState {
     x = 0;
@@ -82,9 +82,9 @@ class CharacterController {
     fallingGravityBoost = 1.7;
     jumpVelocity = 9;
 
-    runSpeed = 5;
+    runSpeed = 4;
 
-    maxAcceleration = 20;
+    maxAcceleration = 10;
     maxDeceleration = 150;
 
     airControl = 0.03;    

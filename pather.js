@@ -56,9 +56,7 @@ class Pather {
     jumpDistribution;
     landDistribution;
 
-    jumpProbablity = 0.5;
-
-    backtrackProbability = 0.4;
+    backtrackProbability = 0.35;
 
     heightVariance = 1.0;
 
@@ -76,9 +74,12 @@ class Pather {
 
         this.jumpDistribution = discreteTriangleDistribution(min, max);
 
+        // Height variance is very non-linear - most of the differences occur very close to zero.
+        // Squaring the parameter gives a more interesting range of variation for a human using the slider.
+        const hv = this.heightVariance * this.heightVariance;
 
-        min = Math.round((this.controller.timeToPeak + (1.0 - this.heightVariance) * this.controller.timeToFall)/dt);
-        max = Math.round((this.controller.timeToPeak + (1.0 + 0.25 * this.heightVariance) * this.controller.timeToFall)/dt);
+        min = Math.round((this.controller.timeToPeak + (1.0 - hv) * this.controller.timeToFall)/dt);
+        max = Math.round((this.controller.timeToPeak + (1.0 + 0.25 * hv) * this.controller.timeToFall)/dt);
 
         if (max < min) {max = min}
         this.landDistribution = discreteTriangleDistribution(min, max);
@@ -118,7 +119,7 @@ class Pather {
         }
 
         if (!path) {
-            this.successfulPath = this.lastAttempt;
+            this.successfulPath = null;
             console.log("failed to find path. ", this.lastAttempt);
         }
     }
@@ -131,7 +132,7 @@ class Pather {
 
         let state = new CharacterState(
             0, 
-            jumpLimit + Math.floor(Math.random() * (fallLimit - jumpLimit))
+            jumpLimit + Math.floor(Math.random() * (fallLimit - jumpLimit)) + 1 - this.controller.height
         );
         state.framesOnGround = 1;
         state.facing = 1;
@@ -154,6 +155,7 @@ class Pather {
         {
             const bottom = state.bottomTile(this.controller.height);
             map.place(SOLID_RESERVATION, 0, bottom + 1);
+            map.place(PLAYER_RESERVATION, 0, bottom);
         }        
         
 
@@ -161,7 +163,10 @@ class Pather {
 
         for (let i = 0; i < ticksBudget; i++) {
 
+            const nearStart = state.x < 2 && path.length < 3/dt;
+
             const input = this.selectInputForState(state, jumpLimit);
+            input.jump &= !nearStart;
 
             const newState = this.controller.step(state, input);
 
@@ -172,7 +177,7 @@ class Pather {
             if (newState.velY > 0) {
                 if (wasOnGround) {
                     let endPlatform = this.jumpDistribution(state.framesOnGround);
-                    needsFloor = Math.random() >= endPlatform;
+                    needsFloor = nearStart || Math.random() >= endPlatform;
                 } else {
                     needsFloor = bottom > fallLimit
                               || Math.random() < this.landDistribution(newState.framesSinceGround);

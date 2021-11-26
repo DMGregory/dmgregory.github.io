@@ -85,10 +85,6 @@ function drawPath(ctx, tileSize, path, colour) {
   for (let i = 1; i < path.length; i++) {
       point = path[i];
       ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
-      if (false && point.velX) {
-        ctx.lineTo((point.x + 0.5 + point.velX * 0.7) * tileSize, (point.y + 0.5 + point.velY * 0.7) * tileSize);
-        ctx.lineTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
-      }
   }
   ctx.stroke();
 }
@@ -100,6 +96,8 @@ const pather = new Pather(controller);
 controller.postUpdate = pather.update.bind(pather);
 
 controller.update();
+
+const skinner = new MapSkinner();
 
 
 
@@ -183,12 +181,15 @@ const demos = {};
 
   pathGen.onRegenerate = function() {
     pather.planPath(pathGen.map);
+    demos.ensemble.needsUpdate = true;
   }
 
   pathGen.map.preDraw = function(context, tileSize) {
 
     if (pather.successfulPath)
       drawPath(context, tileSize, pather.successfulPath, 'white');
+    else if (pather.lastAttempt)
+      drawPath(context, tileSize, pather.lastAttempt, 'red');
   }
 
   pathGen.canvas.addEventListener('click', () => { pathGen.needsUpdate = true; });
@@ -204,12 +205,23 @@ const demos = {};
   const ensemble = new Demo('ensemble', 
     new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
   )
+
+  ensemble.onRegenerate = function() {
+    demos.pathGen.map.stampInto(ensemble.map, 0, 0);
+    const path = pather.successfulPath ?? pather.lastAttempt;
+    skinner.skinMap(ensemble.map, path, controller);
+  }
+
+  ensemble.map.preDraw = demos.pathGen.map.preDraw;  
+  
+  ensemble.canvas.addEventListener('click', () => { console.log("ensemble"); ensemble.needsUpdate = true; });
+
   demos.ensemble = ensemble;
 }
 
 {
-  const allDemos = [demos.jumpArc, demos.pathGen, demos.ensemble];
-  const pathDemos = [demos.pathGen, demos.ensemble]
+  const allDemos = [demos.jumpArc, demos.pathGen];
+  const pathDemos = [demos.pathGen]
   const skinDemos = [demos.ensemble];
   makeParameter(controller, 'runSpeed', ['maxSpeed', 'maxSpeed1'], allDemos);
   makeParameter(controller, 'jumpHeight', ['jumpHeight', 'jumpHeight1'], allDemos);
@@ -228,6 +240,7 @@ function animate() {
   for (const demo of Object.values(demos)) {
     if (demo.needsUpdate) {
       demo.regenerate();
+      break;
     }
   }
 

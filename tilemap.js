@@ -309,6 +309,18 @@ class MapChunk {
         }
     }
 
+    isSolid(x, y) {
+        const tile = this.getTileAt(x, y);
+        switch(tile) {
+            case Tile.SOLID:
+            case Tile.EXCLAMATION_BOX:
+            case Tile.EXCLAMATION_BOX:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     // Empties this map, replacing all contents with the "None" tile symbol.
     clear() {
         const { columns, rows } = this.getDimensions();
