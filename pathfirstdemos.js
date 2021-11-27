@@ -192,7 +192,9 @@ const demos = {};
       drawPath(context, tileSize, pather.lastAttempt, 'red');
   }
 
-  pathGen.canvas.addEventListener('click', () => { pathGen.needsUpdate = true; });
+  function repath() {pathGen.needsUpdate = true; }
+  pathGen.canvas.addEventListener('click',repath);
+  document.getElementById('repathEnsemble').addEventListener('click', repath);
 
   demos.pathGen = pathGen;
 }
@@ -215,6 +217,8 @@ const demos = {};
   ensemble.map.preDraw = demos.pathGen.map.preDraw;  
   
   ensemble.canvas.addEventListener('click', () => { console.log("ensemble"); ensemble.needsUpdate = true; });
+
+  
 
   demos.ensemble = ensemble;
 }
