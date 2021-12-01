@@ -1,8 +1,9 @@
 class MapSkinner {
-    platformExtendProbability = 0.5;
+
+    platformExtendProbability = 1;
 
     powerUpProbability = 0.5;
-    coinProbability = 0.01;
+    coinProbability = 0.1;
 
     enemyProbability = 0.3;
 
@@ -17,8 +18,7 @@ class MapSkinner {
         let solids = [];
         let clearBelow = [];
 
-        let previousClearBelow = 0;
-        const powerupHeight = Math.round(controller.jumpHeight);
+        const powerupHeight = Math.round(controller.jumpHeight + controller.height);
 
         for(let x = 0; x < columns; x++) {
 
@@ -41,11 +41,17 @@ class MapSkinner {
                         if(tilesFromFloor === powerupHeight && tile !== PLAYER_RESERVATION
                             && Math.random() < this.powerUpProbability) {                            
                                 map.place(Tile.EXCLAMATION_BOX, x, y);
-                        } else if (tilesFromFloor === 1 && map.getTileAt(x, y-1) === PLAYER_RESERVATION
-                            && columnsSinceEnemy[y] > 2
-                            && Math.random() < this.enemyProbability) {
-                                map.place(Tile.PINK_SLIME, x, y);
-                                columnsSinceEnemy[y] = 0;
+                        } else if (tilesFromFloor === 1) {
+
+                            if (map.getTileAt(x, y-1) === PLAYER_RESERVATION
+                                && columnsSinceEnemy[y] > 2
+                                && Math.random() < this.enemyProbability) {
+                                    map.place(Tile.PINK_SLIME, x, y);
+                                    columnsSinceEnemy[y] = 0;
+                            } else if (y < rows-1 
+                                && Math.random() < this.coinProbability) {
+                                map.place(Tile.COIN, x, y);
+                            }
                         }
                     }
                 }
@@ -54,22 +60,31 @@ class MapSkinner {
                     clearBelow[x] = y;
                     foundContent = tile !== Tile.NONE;
                 }                
+            }        
+        }
+
+
+        let edge = 0;
+        for (const solid of solids) {
+            
+            if (solid.x > 0 && map.getTileAt(solid.x-1, solid.y) == Tile.NONE && !map.isSolid(solid.x-2, solid.y)
+            && Math.random() < this.platformExtendProbability) {
+                const bottom = clearBelow[solid.x - 1] <= solid.y ? rows - 1 : solid.y;                    
+                map.fill(Tile.SOLID, solid.x-1, solid.y, solid.x-1, bottom);                    
             }
 
-            for (const solid of solids) {
-                if (solid.x > 0 && map.getTileAt(solid.x-1, solid.y) == Tile.NONE && !map.isSolid(solid.x-2, solid.y)) {
-                    const bottom = solid.y; //clearBelow[solid.x - 1] < solid.y ? rows - 1 : solid.y;                    
-                    map.fill(Tile.SOLID, solid.x-1, solid.y, solid.x-1, bottom);                    
-                }
-
-                if (solid.x < columns-1 && map.getTileAt(solid.x+1, solid.y) == Tile.NONE && !map.isSolid(solid.x+2, solid.y)) {
-                    const bottom = solid.y; //clearBelow[solid.x + 1] < solid.y ? rows - 1 : solid.y;                    
-                    map.fill(Tile.SOLID, solid.x+1, solid.y, solid.x+1, bottom);                    
-                }
+            
+            if (solid.x < columns-1 && map.getTileAt(solid.x+1, solid.y) === Tile.NONE && !map.isSolid(solid.x+2, solid.y)
+            && Math.random() < this.platformExtendProbability) {
+                const bottom = clearBelow[solid.x + 1] <= solid.y ? rows - 1 : solid.y;                    
+                map.fill(Tile.SOLID, solid.x+1, solid.y, solid.x+1, bottom);
+                //console.log(edge, solid, clearBelow[solid.x+1]);
+               //edge++;
             }
+            
+        }   
 
-
-            let jumpStart = -1;
+        let jumpStart = -1;
             for (let i = 0; i < path.length; i++) {
                 const state = path[i];
 
@@ -97,9 +112,6 @@ class MapSkinner {
                     jumpStart = -1;
                 }                
             }
-
-            previousClearBelow = clearBelow;
-        }
 
     }
 }

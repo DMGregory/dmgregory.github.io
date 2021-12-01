@@ -83,6 +83,8 @@ class TileLibrary {
 class MapChunk {
     #columns = [];
 
+    printText = true;
+
     // Accepts the width and height of the map/chunk as integers,
     // and an optional tile symbol to fill it with initially.
     constructor(columnCount, rowCount, fillWith) {
@@ -191,7 +193,7 @@ class MapChunk {
         ctx.translate(rect.x, rect.y);
         ctx.scale(scale, scale);
 
-        // Used for debugging path symbols. Uncomment the fillText call below to enable this.
+        // Used for debugging path symbols. 
         ctx.font = "64px sans-serif";
         ctx.fillStyle = "#8CF";
 
@@ -210,8 +212,9 @@ class MapChunk {
                 let tile = this.#columns[x][y];
 
                 // Used for debugging path generation. Displays path symbols instead of tiles.
-                if (typeof tile === "string") {
-                    ctx.fillText(tile, (x+0.25) * tileSize, (y+0.8) * tileSize);
+                if (typeof tile === "string") {                    
+                    if (this.printText)
+                        ctx.fillText(tile, (x+0.25) * tileSize, (y+0.8) * tileSize);
                     tile = Tile.NONE;
                 }
 

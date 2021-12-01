@@ -208,18 +208,30 @@ const demos = {};
     new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
   )
 
+
+  const pathToggle = document.getElementById('showPath');
+  const reservationToggle = document.getElementById('showReservations');
+  ensemble.map.printText = reservationToggle.checked;
+  function updateToggles() {
+    ensemble.map.printText = reservationToggle.checked;
+    ensemble.repaint();
+  }
+  pathToggle.addEventListener('change', updateToggles);
+  reservationToggle.addEventListener('change', updateToggles);
+
   ensemble.onRegenerate = function() {
     demos.pathGen.map.stampInto(ensemble.map, 0, 0);
     const path = pather.successfulPath ?? pather.lastAttempt;
     skinner.skinMap(ensemble.map, path, controller);
   }
 
-  ensemble.map.preDraw = demos.pathGen.map.preDraw;  
+  ensemble.map.preDraw = function(context, tileSize) { if(pathToggle.checked) demos.pathGen.map.preDraw(context, tileSize) };  
   
-  ensemble.canvas.addEventListener('click', () => { console.log("ensemble"); ensemble.needsUpdate = true; });
+  ensemble.canvas.addEventListener('click', () => { ensemble.needsUpdate = true; });
 
   
 
+  
   demos.ensemble = ensemble;
 }
 
@@ -237,6 +249,10 @@ const demos = {};
   makeParameter(pather, 'maxSecondsOnPlatform', ['maxJumpTime'], pathDemos);
   makeParameter(pather, 'backtrackProbability', ['backtrackProbability'], pathDemos);
   makeParameter(pather, 'heightVariance', ['heightVariance'], pathDemos);
+  makeParameter(skinner, 'platformExtendProbability', ['extendProbability'], skinDemos);
+  makeParameter(skinner, 'coinProbability', ['coinProbability'], skinDemos);
+  makeParameter(skinner, 'powerUpProbability', ['powerUpProbability'], skinDemos);
+  makeParameter(skinner, 'enemyProbability', ['enemyProbability'], skinDemos);
 }
 
 

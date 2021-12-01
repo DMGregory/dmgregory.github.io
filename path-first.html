@@ -11,12 +11,12 @@
   /*figure {background-color: #F0F0F0;*/
 
   figure > table {width:100%; border-bottom: 2px solid lightgrey;}
-  label {  margin-left: 10px;}
+  label {  margin-left: 10px; font-size: medium;}
 </style>
 
 <script type="text/front-matter">
   title: "Path-First Platformer Generation"
-  description: "Using simulated gameplay traces as foundations for level generation."
+  description: "Using simulated gameplay traces as foundations for game level generation."
   authors:
   - Douglas Gregory: https://twitter.com/D_M_Gregory
   affiliations:
@@ -48,7 +48,7 @@
   </p>
 
   <h4>Keywords</h4>
-  <p>Procedural Content Generation, Platformer, Play Traces</p>
+  <p>Procedural Content Generation, Video Games, Platformer, Play Traces, Markov Chain</p>
 
   <h3>1. Introduction</h3>
 
@@ -169,20 +169,26 @@
 
     <table><tr>
       <td width="50%">
-        <label for="maxSpeed">Max Speed</label>
-        <input type="range" id="maxSpeed" min="3" max="8" step="any"/><br/>
-        <label for="acceleration">Acceleration</label>
-        <input type="range" id="acceleration" min="1" max="50" step="any"/><br/>   
-        <label for="deceleration">Deceleration</label>
-        <input type="range" id="deceleration" min="1" max="200" step="any"/><br/>   
+        
+        <input type="range" id="maxSpeed" min="3" max="8" step="any"/>
+        <label for="maxSpeed">Max Speed</label><br/>
+        
+        <input type="range" id="acceleration" min="1" max="50" step="any"/>
+        <label for="acceleration">Acceleration</label><br/>   
+        
+        <input type="range" id="deceleration" min="1" max="200" step="any"/>
+        <label for="deceleration">Deceleration</label><br/>   
       </td>
       <td width="50%">
-        <label for="jumpHeight">Jump Height</label>
-        <input type="range" id="jumpHeight" min="0.5" max="8" step="any"/><br/>
-        <label for="airControl">Air Control</label>
-        <input type="range" id="airControl" min="0" max="1" step="any"/><br/>
-        <label for="fallingBoost">Falling Boost</label>
-        <input type="range" id="fallingBoost" min="0.5" max="8" step="any"/><br/>
+        
+        <input type="range" id="jumpHeight" min="0.5" max="8" step="any"/>
+        <label for="jumpHeight">Jump Height</label><br/>
+        
+        <input type="range" id="airControl" min="0" max="1" step="any"/>
+        <label for="airControl">Air Control</label><br/>
+        
+        <input type="range" id="fallingBoost" min="0.5" max="8" step="any"/>
+        <label for="fallingBoost">Falling Boost</label><br/>
       </td>      
     </tr><tr>
     <td colspan="2" style="text-align:center">
@@ -260,31 +266,32 @@
     <figure class="l-middle">     
       <canvas id="pathGen"></canvas>
   
-      <p><span style="color: #8CF; font-weight: bold;">=</span> "solid" tile reservation &nbsp; &nbsp;  &nbsp; &nbsp;
-        <span style="color: #8CF; font-weight: bold;">.</span> tile reserved for player path &nbsp; &nbsp;  &nbsp; &nbsp;
+      <p><span style="color: #8CF; font-weight: bold;">█</span> "solid" tile reservation &nbsp; &nbsp;  &nbsp; &nbsp;
+        <span style="color: #8CF; font-weight: bold;">o</span> tile reserved for player path &nbsp; &nbsp;  &nbsp; &nbsp;
         <span style="color: red; font-weight: bold;">&mdash;</span> path attempt failed</p>
 
       <table><tr>        
         <td width="50%">
-          <label for="minJumpTime">Min Time Between Jumps</label>
-          <input type="range" id="minJumpTime" min="0.5" max="4" step="any"/><br/> 
-          <label for="maxJumpTime">Max Time Between Jumps</label>
-          <input type="range" id="maxJumpTime" min="0.5" max="4" step="any"/><br/> 
+          <input type="range" id="minJumpTime" min="0.5" max="4" step="any"/>
+          <label for="minJumpTime">Min Time Between Jumps</label><br/> 
+          
+          <input type="range" id="maxJumpTime" min="0.5" max="4" step="any"/>
+          <label for="maxJumpTime">Max Time Between Jumps</label><br/> 
         </td>
         <td width="50%">
-          <label for="backtrackProbability">Backtrack Probability</label>
-          <input type="range" id="backtrackProbability" min="0" max="0.4" step="any"/><br/>
-          <label for="heightVariance">Height Variance</label>
-          <input type="range" id="heightVariance" min="0" max="1" step="any"/><br/>
+          <input type="range" id="backtrackProbability" min="0" max="0.4" step="any"/>
+          <label for="backtrackProbability">Backtrack Probability</label><br/>
+          <input type="range" id="heightVariance" min="0" max="1" step="any"/>
+          <label for="heightVariance">Height Variance</label><br/>
         </td>      
       </tr><tr>
-        <td width="50%">
-          <label for="maxSpeed1">Max Speed</label>
-          <input type="range" id="maxSpeed1" min="3" max="8" step="any"/><br/> 
+        <td width="50%">          
+          <input type="range" id="maxSpeed1" min="3" max="8" step="any"/>
+          <label for="maxSpeed1">Max Speed</label><br/> 
         </td>
-        <td width="50%">
-          <label for="jumpHeight1">Jump Height</label>
-          <input type="range" id="jumpHeight1" min="0.5" max="8" step="any"/><br/>
+        <td width="50%">          
+          <input type="range" id="jumpHeight1" min="0.5" max="8" step="any"/>
+          <label for="jumpHeight1">Jump Height</label><br/>
         </td>      
       </tr><tr>
         <td colspan="2" style="text-align:center">
@@ -330,16 +337,33 @@
 
   <figure class="l-middle">
     
+    <button id="repathEnsemble">New Path</button> &nbsp; &nbsp; &nbsp; &nbsp;
+    <input type="checkbox" id="showPath"><label for="showPath">Show Path</label>
+    &nbsp; &nbsp; &nbsp; &nbsp;
+    <input type="checkbox" id="showReservations"><label for="showReservations">Show Reservations</label><br/>
     <canvas id="ensemble"></canvas>
 
     <table><tr>
-      <td>
-        <button id="repathEnsemble">New Path</button>
+      <td width="50%">
+        
+        <input type="range" id="extendProbability" min="0" max="1" step="any"/>
+        <label for="extendProbability">Platform Extend Probability</label><br/> 
+        
+        <input type="range" id="enemyProbability" min="0" max="1" step="any"/>
+        <label for="enemyProbability">Enemy Probability</label><br/> 
+      </td>
+      <td width="50%">
+        
+        <input type="range" id="coinProbability" min="0" max="1" step="any"/>
+        <label for="coinProbability">Coin Probability</label><br/> 
+        
+        <input type="range" id="powerUpProbability" min="0" max="1" step="any"/>
+        <label for="powerUpProbability">! Box Probability</label><br/> 
       </td>
     </tr><tr>
       <td colspan="2" style="text-align:center">
         <em>You can examine the logic used for the skinning in <a href="./skinner.js">skinner.js</a>.</em>
-      </td>
+      </td width="50%">
     </tr></table>    
   </figure>
 

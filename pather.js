@@ -1,5 +1,5 @@
-const SOLID_RESERVATION = '#';
-const PLAYER_RESERVATION = '.';
+const SOLID_RESERVATION = '█';
+const PLAYER_RESERVATION = 'o';
 
 function discreteTriangleDistribution(min, max) {
     
