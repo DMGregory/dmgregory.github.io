@@ -72,6 +72,8 @@ class CharacterState {
 
     leftTile() { return Math.floor(this.x)}
     rightTile(width) { return Math.ceil(this.x + width - 1)}
+
+    isFalling() {return this.velY > 0;}
 }
 
 class CharacterController {

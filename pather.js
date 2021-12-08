@@ -174,7 +174,7 @@ class Pather {
 
 
             let needsFloor = false;
-            if (newState.velY > 0) {
+            if (newState.isFalling()) {
                 if (wasOnGround) {
                     let endPlatform = this.jumpDistribution(state.framesOnGround);
                     needsFloor = nearStart || Math.random() >= endPlatform;
