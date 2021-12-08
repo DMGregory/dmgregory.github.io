@@ -50,13 +50,13 @@ class Pather {
     fallLimit;
     jumpLimit;
 
-    minSecondsOnPlatform= .5;
+    minSecondsOnPlatform= 1;
     maxSecondsOnPlatform = 2;
 
     jumpDistribution;
     landDistribution;
 
-    backtrackProbability = 0.35;
+    backtrackProbability = 0.45;
 
     heightVariance = 1.0;
 
@@ -120,7 +120,7 @@ class Pather {
 
         if (!path) {
             this.successfulPath = null;
-            console.log("failed to find path. ", this.lastAttempt);
+            console.log("failed to find path.");
         }
     }
 

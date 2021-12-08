@@ -210,50 +210,76 @@ const demos = {};
 
 // First demo: visualizing character controller's jump arcs.
 {
+  // Define width and height of the demo, in tile widths.
   const width = 20;
   const height = 10;
+  // Define the location where the character will stand / jump from.
   const startX = 3;
   const startY = height - 2;
+
+  // Create a new demo, and fill its map with a floor along the bottom, and a character sprite at the start position.
   const jumpArc = new Demo('jumpArc', 
     new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
   )
 
+  // Store arrays for each of the possible jump trajectories.
   const standingJump = [];
   const runningJump = [];
   const stallingJump = [];
   const reverseJump = [];
 
-  function simPath(path, state, input) {
+  /**
+   * Helper method to simulate a jump trajectory with a given input value, and store the points it crosses.
+   * @param {Point[]} path One of the 4 stored trajectory arrays.
+   * @param {CharacterState} state Initial state at the start of the jump.
+   * @param {InputState} input Current state of the player's simulated controller input.
+   */
+  function simJumpPath(path, state, input) {
+    // Erase the old path, and start at the initial state given.
     path.length = 0;    
-    path.push({x:startX, y:startY});
+    path.push({x:state.x, y:state.y});
+
+    // Keep simulating until we fall below our starting height.
+    const startY = state.y;
     while (state.y <= startY) {
+      // Use the character controller to step one frame into the future, and record the point in our path.
       state = controller.step(state, input);      
       path.push({x:state.x, y:state.y});
     }  
   }
 
+  /**
+   * Whenever the jumpArc demo needs to be regenerated, update the four simulated jump trajectories.
+   */
   jumpArc.onRegenerate = function() {
-    const start = new CharacterState(startX, startY);
-    start.velY = controller.jumpVelocity;
-    const input = {x: 1, jump: true};
+    // Always start where we placed our character sprite.
+    const start = new CharacterState(startX, startY);    
+    
+    // Standing jump: no initial velocity, pressing right.
+    const input = {x: 1, jump: true};    
+    simJumpPath(standingJump, start, input);
 
-    //console.log('standing', start, standingJump);
-    simPath(standingJump, start, input);
+    // Running jump: already moving right as fast as we can.
+    start.velX = controller.runSpeed;        
+    simJumpPath(runningJump, start, input);
 
-    start.velX = controller.runSpeed;    
-    //console.log('running', start, runningJump);
-    simPath(runningJump, start, input);
+    // Stalling jump: letting go of the stick just as we jump.
+    input.x = 0;    
+    simJumpPath(stallingJump, start, input); 
 
-    input.x = 0;
-    //console.log('stalling', start, stallingJump);
-    simPath(stallingJump, start, input); 
-
-    input.x = -1;
-    //console.log('reverse', start, reverseJump);
-    simPath(reverseJump, start, input);
+    // Turnaround jump: reversing direction just as we jump.
+    input.x = -1;    
+    simJumpPath(reverseJump, start, input);
   }
 
-  jumpArc.map.preDraw = function(context, tileSize) {
+  /**
+   * Anytime we repaint this demo, before drawing our tile content, draw all our lines.
+   * @param {CanvasRenderingContext2D} context 
+   * @param {Number} tileSize 
+   */
+  function preDraw(context, tileSize) { 
+  
+    // First, draw a white tile grid - horizontal lines, then vertical lines.
     context.beginPath();
     context.strokeStyle = 'white';
     context.lineWidth = 2;
@@ -266,55 +292,69 @@ const demos = {};
       context.lineTo(x* tileSize, height * tileSize);
     }
     context.stroke();
+
+    // Then draw our four jump tajectories in their respective colours.
     drawPath(context, tileSize, runningJump, 'green');
-    drawPath(context, tileSize, standingJump, 'blue');
-    
+    drawPath(context, tileSize, standingJump, 'blue');    
     drawPath(context, tileSize, reverseJump, 'red');
     drawPath(context, tileSize, stallingJump, 'orange');
   }
+  jumpArc.map.preDraw = preDraw;
 
+  // Store this demo so we can refer to it later.
   demos.jumpArc = jumpArc;
 }
 
+// Second demo: visualizing a generated path through the map.
 {
+  // Set up demo's initial width and height, and apply this to the pathGen demo canvas.
   const width = 50;
-  const height = 20;
-  const startX = 3;
-  const startY = height - 2;
+  const height = 20;  
   const pathGen = new Demo('pathGen', 
     new MapChunk(width, height)
   )
 
+  // When regenerating this demo, ask the pather for a fresh generated path.
   pathGen.onRegenerate = function() {
     pather.planPath(pathGen.map);
+    // The skinned demo will also need an update to take the new path into account.
     demos.ensemble.needsUpdate = true;
   }
 
-  pathGen.map.preDraw = function(context, tileSize) {
 
+  /**
+   * Anytime we repaint this demo, before drawing our tile content, draw our path.
+   * @param {CanvasRenderingContext2D} context 
+   * @param {Number} tileSize 
+   */
+  function preDraw(context, tileSize) {
     if (pather.successfulPath)
       drawPath(context, tileSize, pather.successfulPath, 'white');
     else if (pather.lastAttempt)
       drawPath(context, tileSize, pather.lastAttempt, 'red');
   }
+  pathGen.map.preDraw = preDraw;
 
+  // Wire up the path to be regenerated on demand when clicking the demo canvas,
+  // or when pressing the "New Path" button in the last demo.
   function repath() {pathGen.needsUpdate = true; }
   pathGen.canvas.addEventListener('click',repath);
   document.getElementById('repathEnsemble').addEventListener('click', repath);
 
+  // Store this demo so we can refer to it later.
   demos.pathGen = pathGen;
 }
 
+// Final demo: skinning the path in level tiles.
 {
-  const width = 50;
-  const height = 20;
-  const startX = 3;
-  const startY = height - 2;
+  // Size this demo to match the generated path demo.
+  const {columns, rows} = demos.pathGen.map.getDimensions();  
   const ensemble = new Demo('ensemble', 
-    new MapChunk(width, height).fill(Tile.SOLID, 0, height-1, width-1).place(Tile.PLAYER_STAND, startX, startY)
+    new MapChunk(columns, rows)
   )
 
-
+  // Allow the reader to turn on/off the drawing of the solution path and reserved tiles.
+  // Set the default policy according to the HTML file, and repaint when changed.    
   const pathToggle = document.getElementById('showPath');
   const reservationToggle = document.getElementById('showReservations');
   ensemble.map.printText = reservationToggle.checked;
@@ -325,22 +365,30 @@ const demos = {};
   pathToggle.addEventListener('change', updateToggles);
   reservationToggle.addEventListener('change', updateToggles);
 
+  /**
+   * Anytime we repaint this demo, draw the solution path if the corresponding toggle says so.
+   * @param {CanvasRenderingContext2D} context 
+   * @param {Number} tileSize 
+   */
+   function preDraw(context, tileSize) { if(pathToggle.checked) demos.pathGen.map.preDraw(context, tileSize) }; 
+   ensemble.map.preDraw = preDraw;
+
+
+
+  // When the demo is regenerated, copy the path annotations into this math, 
+  // then run the skinner on those annotations and the corresponding path info.
   ensemble.onRegenerate = function() {
     demos.pathGen.map.stampInto(ensemble.map, 0, 0);
     const path = pather.successfulPath ?? pather.lastAttempt;
     skinner.skinMap(ensemble.map, path, controller);
   }
-
-  ensemble.map.preDraw = function(context, tileSize) { if(pathToggle.checked) demos.pathGen.map.preDraw(context, tileSize) };  
   
-  ensemble.canvas.addEventListener('click', () => { ensemble.needsUpdate = true; });
-
-  
-
-  
+  // Wire up the skinner to re-run when the demo is clicked, and store the demo to refer to later.
+  ensemble.canvas.addEventListener('click', () => { ensemble.needsUpdate = true; });  
   demos.ensemble = ensemble;
 }
 
+// Wire up all the sliders to modify their corresponding parameters.
 {
   const allDemos = [demos.jumpArc, demos.pathGen];
   const pathDemos = [demos.pathGen]
@@ -361,7 +409,9 @@ const demos = {};
   makeParameter(skinner, 'enemyProbability', ['enemyProbability'], skinDemos);
 }
 
-
+// Each frame, (once the tiles are loaded), find the first demo that needs an update,
+// and update it. This way we never try to do multiple updates in a frame 
+// (no matter how noisy the mouse input) so the page does not become unresponsive.
 function animate() {
   for (const demo of Object.values(demos)) {
     if (demo.needsUpdate) {
@@ -373,13 +423,12 @@ function animate() {
   window.requestAnimationFrame(animate);
 }
 
-
-// Repaint all demo canvasses if the window size changes,
-// or after the tileset finishes loading.
+// Repaint all demo canvasses if the window size changes.
 function repaintAll() {
   for (const demo of Object.values(demos)) {
     demo.resize();
   }
 }
 window.addEventListener('resize', repaintAll);
+// Set the initial sizes of all demos.
 repaintAll();

@@ -1,5 +1,11 @@
 const dt = 1/30;
 
+/**
+ * @typedef {Object} InputState
+ * @property {Number} x Horizontal analog stick input, from -1 (left) to +1 (right)
+ * @property {boolean} jump Is the jump button pressed?
+ */
+
 class CharacterState {
     x = 0;
     y = 0;
@@ -86,8 +92,8 @@ class CharacterController {
 
     runSpeed = 4;
 
-    maxAcceleration = 10;
-    maxDeceleration = 150;
+    maxAcceleration = 50;
+    maxDeceleration = 100;
 
     airControl = 0.03;    
 
