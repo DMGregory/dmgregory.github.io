@@ -99,7 +99,7 @@ class MapChunk {
      * Build a new map chunk with the given dimensions / initial content.
      * @param {Number} columnCount Width of the map, in tiles.
      * @param {Number} rowCount Height of the map, in tiles.
-     * @param {Symbol?} fillWith Optional: fill map with this symbol. Uses Tile.NONE if absent.
+     * @param {Symbol} [fillWith] Optional: fill map with this symbol. Uses Tile.NONE if absent.
      */    
     constructor(columnCount, rowCount, fillWith) {
         // Default to fill with the empty tile if no other value is provided.
@@ -212,7 +212,7 @@ class MapChunk {
 
     /**
      * Data structure for determining a subsection of a canvas to draw into.
-     * @typedef Rect
+     * @typedef {Object} Rect
      * @param {Number} x Left edge of rectangle, in pixels.
      * @param {Number} y Top edge of rectangle, in pixels.
      * @param {Number} width Width of rectangle, in pixels.
@@ -223,7 +223,7 @@ class MapChunk {
      * Draws the contents of the map chunk into the provided canvas 2D context.
      * @param {CanvasRenderingContext2D} ctx Context to draw into.
      * @param {TileLibrary} tiles Library of tile images to use.
-     * @param {Rect?} rect Portion of the canvas to draw into. Defaults to whole canvas if absent.
+     * @param {Rect} [rect] Portion of the canvas to draw into. Defaults to whole canvas if absent.
      */
     draw(ctx, tiles, rect) {
         // Default to the whole canvas if a rect was not provided.
@@ -392,6 +392,7 @@ class MapChunk {
         switch(tile) {
             case Tile.SOLID:
             case Tile.EXCLAMATION_BOX:
+            case SOLID_RESERVATION:
                 return true;
             default:
                 return false;

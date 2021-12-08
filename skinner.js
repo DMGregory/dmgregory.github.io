@@ -2,8 +2,8 @@ class MapSkinner {
 
     platformExtendProbability = 1;
 
-    powerUpProbability = 0.5;
-    coinProbability = 0.1;
+    powerUpProbability = 0.2;
+    coinProbability = 0.2;
 
     enemyProbability = 0.3;
 

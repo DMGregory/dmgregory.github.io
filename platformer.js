@@ -51,7 +51,7 @@ class CharacterState {
 
     /**
      * Should this state count as "Standing on the ground"?
-     * @param {Number?} coyoteFrames How many frames' leeway do we give for a recently-falling character? Defaults to zero.
+     * @param {Number} [coyoteFrames=0] How many frames' leeway do we give for a recently-falling character? Defaults to zero.
      * @returns {boolean} True if on ground (or within coyote time window), false if rising, or falling longer than the threshold.
      */
     isOnGround(coyoteFrames = 0) {
