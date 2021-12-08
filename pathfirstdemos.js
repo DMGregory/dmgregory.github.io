@@ -1,73 +1,150 @@
-// Prep our tile library and call the generate and paint methods when ready.
+// Prep our tile library and start the animation loop once all graphics are loaded.
+// See tilemap.js for this type.
 const tiles = new TileLibrary(() => {
   animate();
 });
 
-// Utility function for scaling demo canvasses to match their container.
+//#region Demo types and helper methods.
+
+/**
+ * Utility function for scaling demo canvasses to match their container width.
+ * @param {HTMLElement} element DOM element to be resized.
+ * @param {Number} aspect Height:Width ratio to maintain when sizing.
+ */
 function sizeToParent(element, aspect) {
   element.width = element.parentElement.clientWidth;
   element.height = Math.floor(aspect * element.parentElement.clientWidth);
 }
 
+
+/**
+ * Definition for a method signature that takes no parameters and returns nothing.
+ * @callback ActionCallback
+ */
+
 // Type for demo applets to make it easier to refresh them.
 class Demo {
-  canvas;
-  context;
-  map;
-  prePaint; postPaint;
 
+  /** @type {HTMLCanvasElement} */
+  canvas;
+
+  /** @type {CanvasRenderingContext2D} */
+  context;
+
+  /** @type {MapChunk} */
+  map;
+
+  /** @type {ActionCallback} */
+  prePaint; 
+
+  /** @type {ActionCallback} */
+  postPaint;
+
+  /** @type {ActionCallback} */
   onRegenerate;
+
+  /** @type {boolean} */
   needsUpdate = true;
 
-  constructor(name, map) {
-    this.canvas = document.getElementById(name);
+  /** @type {string} */
+  backgroundColour = "#D0E0FF";
+
+  /**
+   * Constructs a new demo, fetching the Canvas & its 2D context from the HTML document.
+   * @param {string} id ID of Canvas Element to use for this demo.
+   * @param {MapChunk} map MapChunk to contain content to draw.
+   */
+  constructor(id, map) {
+    this.canvas = document.getElementById(id);
     this.context = this.canvas.getContext('2d');
     this.map = map;
   }
 
+  /**
+   * Rebuilds the demo's content, based on the latest data changes.
+   */
   regenerate() {
+    // Call any custom generation work that needs to happen.
     if (this.onRegenerate) this.onRegenerate();
     
+    // Paint the canvas contents to reflect the newly generated map.
     this.repaint();
+
+    // Mark this demo up to date, so it's not refreshed redundantly.
     this.needsUpdate = false;
   }
 
+  /**
+   * Resize this demo to match the container size,
+   * then repaint its visible content without generating from scratch.
+   */
   resize() {
     sizeToParent(this.canvas, this.map.aspect());
     this.repaint();
   }
 
+  /**
+   * Paint the contents of the map, and any supporting content.
+   */
   repaint() {
-    this.context.fillStyle = "#D0E0FF";
+    // Paint the sky to a consistent blue.
+    this.context.fillStyle = this.backgroundColour;
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);    
 
+    // If we have our tiles, paint this demo's map contents.
     if (tiles.hasLoaded()) {
+      // Allow customizing demos with steps to draw between the sky background and the foreground.
       if (this.prePaint) this.prePaint();
+
+      // Draw the map, using our standard tileset.
       this.map.draw(this.context, tiles);
+
+      // Allow customizing demos with steps to draw at the end, on top of the mep content.
       if (this.postPaint) this.postPaint();
     }    
   }
 }
 
+/**
+ * Helper function for setting up parameter sliders that modify demos.
+ * @param {Object} objectToModify Object containing the variable we want to change.
+ * @param {string} parameterName Name of the variable to change.
+ * @param {string[]} documentIds Array of IDs for HTML slider elements that should be linked to this parameter.
+ * @param {Demo[]} affectedDemos Array of Demo objects that need to be updated when this parameter changes.
+ */
 function makeParameter(objectToModify, parameterName, documentIds, affectedDemos) {
+  /** @type {HTMLInputElement[]} Array of sliders that control this parameter. */
   const inputs = [];
 
+  /**
+   * Define a callback to modify the source data object when the slider is changed.
+   * @param {InputEvent} event 
+   */
   function reaction(event) {
-    const value = event.target.value;
-    objectToModify[parameterName] = parseFloat(value);    
+    // Read number from the changed slider, and apply it to the variable we want to control.
+    const value = parseFloat(event.target.value);
+    objectToModify[parameterName] = value;    
+
+    // If that object has an "update" function, invoke it to hande the new value.
     if (objectToModify.update) objectToModify.update();
 
+    // Update all other sliders that control this parameter, so they all agree with the latest input.
     for (const input of inputs) {
       input.value = value;
     }
 
+    // Mark all affected demos as needing an update.
     for (const demo of affectedDemos) {
       demo.needsUpdate = true;
     }
   }  
 
+  // Get the initial value of this parameter from the data object,
+  // so we can apply it to all the sliders (and I don't have to edit the HTML manually).
   const initialValuue = objectToModify[parameterName];
 
+  // Gather up all the matching sliders in the HTML document,
+  // set up their initial values, and connect them to the reaction function.
   for (const id of documentIds) {
     const input = document.getElementById(id);
     input.value = initialValuue;
@@ -76,11 +153,28 @@ function makeParameter(objectToModify, parameterName, documentIds, affectedDemos
   }  
 }
 
+/**
+ * Type definition for a structure representing a 2D point.
+ * @typedef {Object} Point
+ * @property {Number} x
+ * @property {Number} y
+ */
+
+/**
+ * Utility method for drawing paths into a TileMap.
+ * @param {CanvasRenderingContext2D} ctx Context to draw into.
+ * @param {Number} tileSize Scaling factor - how many pixels wide is one tile?
+ * @param {Point[]} path Array of points making up the path.
+ * @param {string} colour Colour to draw the path in.
+ */
 function drawPath(ctx, tileSize, path, colour) {  
   ctx.strokeStyle = colour;
   ctx.lineWidth = 5;
   ctx.beginPath();
   let point = path[0];
+
+  // Draw path through the middle of the tiles (hence the +0.5s)
+  // (By default, my points refer to the top-left corner of a tile)
   ctx.moveTo((point.x + 0.5) * tileSize, (point.y + 0.5) * tileSize);
   for (let i = 1; i < path.length; i++) {
       point = path[i];
@@ -89,20 +183,32 @@ function drawPath(ctx, tileSize, path, colour) {
   ctx.stroke();
 }
 
+//#endregion
+
+
+// Data objects representing the generator's configuration.
+
+// Character control mode.
 const controller = new CharacterController();
 
+// Path generator.
 const pather = new Pather(controller);
 
-controller.postUpdate = pather.update.bind(pather);
-
-controller.update();
-
+// Tile placement logic.
 const skinner = new MapSkinner();
 
+// Whenever the controller changes, the path generator also needs to change
+// (Taking into account different jump height, traversal timings)
+controller.postUpdate = pather.update.bind(pather);
+
+// Initialize the controller (and consequently pather) with their default values.
+controller.update();
 
 
 // Container for all demo objects.
 const demos = {};
+
+// First demo: visualizing character controller's jump arcs.
 {
   const width = 20;
   const height = 10;
