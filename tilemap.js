@@ -238,7 +238,7 @@ class MapChunk {
         const { columns, rows } = this.getDimensions();
         // HACK: Drawing full size leaves faint gaps between tiles.
         // Reducing the effective size by a fudge factor hides this artifact.
-        const tileSize = tiles.getSize() * 0.98;
+        const tileSize = tiles.getSize() * 0.97;
         const scale = Math.min(
             rect.width / (columns * tileSize),
             rect.height / (rows * tileSize)

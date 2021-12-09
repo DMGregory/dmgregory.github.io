@@ -7,6 +7,7 @@
 <script src="./skinner.js"></script>
 <style>
   svg { display: none; }
+  /*figure { background-color: #D0E0FF;}*/
   figure > table {width:100%; border-bottom: 2px solid lightgrey;}
   label {  margin-left: 10px; font-size: medium;}
 </style>
@@ -25,7 +26,7 @@
   <h2>Using simulated gameplay traces as foundations for level generation.</h2>
 
   <figure class="l-screen">
-    <img src="images/path1st-slideshow.gif" width="100%" alt="Slideshow preview of generated results."/>
+    <img src="images/path1st-betterslideshow.gif" width="100%" alt="Slideshow preview of generated results."/>
   </figure>
 
   <dt-byline></dt-byline>
@@ -346,7 +347,9 @@
     <button id="repathEnsemble">New Path</button> &nbsp; &nbsp; &nbsp; &nbsp;
     <input type="checkbox" id="showPath" checked><label for="showPath">Show Path</label>
     &nbsp; &nbsp; &nbsp; &nbsp;
-    <input type="checkbox" id="showReservations"><label for="showReservations">Show Reservations</label><br/>
+    <input type="checkbox" id="showReservations"><label for="showReservations">Show Reservations</label>
+    &nbsp; &nbsp; &nbsp; &nbsp;
+    <input type="checkbox" id="autoRegen"><label for="autoRegen">Regenerate Periodically</label><br/>
     <canvas id="ensemble"></canvas>
 
     <table><tr>

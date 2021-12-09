@@ -321,7 +321,6 @@ const demos = {};
     demos.ensemble.needsUpdate = true;
   }
 
-
   /**
    * Anytime we repaint this demo, before drawing our tile content, draw our path.
    * @param {CanvasRenderingContext2D} context 
@@ -383,6 +382,19 @@ const demos = {};
     skinner.skinMap(ensemble.map, path, controller);
   }
   
+
+  const autoToggle = document.getElementById('autoRegen');
+  let interval = null;
+  function toggleAuto() {
+    if (autoToggle.checked) {
+      interval = setInterval(()=>{demos.pathGen.needsUpdate = true;}, 1000);
+      pathGen.needsUpdate = true;
+    } else {
+      clearInterval(interval);
+    }
+  }
+  autoToggle.addEventListener('change', toggleAuto);
+
   // Wire up the skinner to re-run when the demo is clicked, and store the demo to refer to later.
   ensemble.canvas.addEventListener('click', () => { ensemble.needsUpdate = true; });  
   demos.ensemble = ensemble;
