@@ -32,7 +32,7 @@ function discreteTriangleDistribution(min, max) {
         if (fromMin < halfSpan) {
             return totalWeight - fromMin * (fromMin + 1) / 2;
         } else {
-            fromEnd = span - fromMin;
+            let fromEnd = span - fromMin;
             return fromEnd*(fromEnd+1)/2;
         }
     }
